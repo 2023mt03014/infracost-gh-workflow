@@ -1,5 +1,4 @@
 name: Infracost Cost Estimates
-
 on:
   pull_request:
     paths:
@@ -8,37 +7,35 @@ on:
 
 jobs:
   infracost:
-    name: Infracost
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write    # needed to post comments
-      contents: read
+      contents:       read
+      pull-requests: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3.0.1    # install Infracost CLI
         with:
-          terraform_wrapper: false
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-      - name: Terraform Init & Plan
-        id: plan
+      - name: Generate cost baseline
         run: |
-          terraform init -input=false
-          terraform plan -out=tfplan.binary -input=false
+          infracost breakdown --path=. \
+                              --format=json \
+                              --out-file=baseline.json
 
-      - name: Infracost PR check
-        uses: infracost/infracost-gh-action@v1
-        with:
-          path: .
-          terraform_plan_flags: "-no-color tfplan.binary"
-        env:
-          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+      - name: Generate diff
+        run: |
+          infracost diff --path=. \
+                         --format=json \
+                         --compare-to=baseline.json \
+                         --out-file=infracost.json
 
-      - name: Comment PR with cost estimate
-        uses: infracost/actions/comment@v2
-        with:
-          report_path: infracost.json
-          update: true
+      - name: Post Infracost comment
+        run: |
+          infracost comment github --path=infracost.json \
+                                   --github-token=${{ secrets.GITHUB_TOKEN }} \
+                                   --pull-request=${{ github.event.pull_request.number }} \
+                                   --behavior=update
