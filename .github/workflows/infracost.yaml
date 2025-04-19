@@ -1,49 +1,37 @@
 name: Infracost Cost Estimates
+
 on:
   pull_request:
     paths:
       - '**/*.tf'
       - '**/*.tfvars'
+
+permissions:
+  contents: read       # needed to fetch base branch
+  pull-requests: write # needed to post/update PR comment
+
 jobs:
   infracost:
     runs-on: ubuntu-latest
-    permissions:
-      contents:       read
-      pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup Infracost
-        uses: infracost/actions/setup@v3.0.1    # install Infracost CLI
+      - name: Terraform Init & Plan
+        run: |
+          terraform init -input=false
+          terraform plan -out=tfplan.binary -input=false
+
+      - name: Infracost Pull Request Check
+        id: infracost
+        uses: infracost/infracost-gh-action@v0.8.4
         with:
-          api-key: ${{ secrets.INFRACOST_API_KEY }}
-
-      - name: Generate cost baseline
-        run: |
-          infracost breakdown --path=. \
-                              --format=json \
-                              --out-file=baseline.json
-
-      - name: Generate diff
-        run: |
-          infracost diff --path=. \
-                         --format=json \
-                         --compare-to=baseline.json \
-                         --out-file=infracost.json
-
-      - name: Comment PR with cost estimate
-        uses: infracost/actions/comment@v2.1.0
-        with:
-          report_path: infracost.json
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          update: true
-
-      - name: Post Infracost comment
-        run: |
-          infracost comment github \
-            --path=infracost.json \
-            --repo="${{ github.repository }}" \
-            --pull-request="${{ github.event.pull_request.number }}" \
-            --github-token="${{ secrets.GITHUB_TOKEN }}" \
-            --behavior=update
+          # point at your plan file or directory
+          path: tfplan.binary
+          # any extra flags (optional)
+          terraform_plan_flags: "-no-color"
+        env:
+          # your Infracost API key, GITHUB_TOKEN for commenting
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
