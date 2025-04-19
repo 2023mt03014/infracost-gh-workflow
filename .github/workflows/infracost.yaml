@@ -61,3 +61,13 @@ jobs:
                                      --github-token=${{ github.token }} \
                                      --pull-request=${{ github.event.pull_request.number }} \
                                      --behavior=update
+        # … after you’ve run `terraform init` & `terraform plan -out=tfplan.binary`
+      - name: Infracost PR cost comparison
+        uses: infracost/actions@v3.0.1
+        with:
+          api_key: ${{ secrets.INFRACOST_API_KEY }}                        # your Infracost Cloud API key
+          path: tfplan.binary                                            # terraform plan output
+          comment: true                                                   # enable PR comments
+          behavior: update                                                # update the existing comment
+          base_branch: ${{ github.event.pull_request.base.ref }}          # compare against target branch  [oai_citation_attribution:0‡GitHub](https://github.com/infracost/actions?utm_source=chatgpt.com) [oai_citation_attribution:1‡GitHub](https://github.com/infracost/actions/blob/master/action.yml?utm_source=chatgpt.com)
+          terraform_plan_flags: "-no-color"                               # optional: strip ANSI colors
