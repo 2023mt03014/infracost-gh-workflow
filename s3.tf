@@ -36,7 +36,7 @@ data "aws_ami" "amazon_linux_2" {
     values = ["amzn2-ami-hvm-*-x86_64-gp2"]
   }
 }
-
+/*
 resource "aws_instance" "free_tier" {
   ami           = data.aws_ami.amazon_linux_2.id
   instance_type = "t2.micro"          # Free‑tier eligible
@@ -48,6 +48,7 @@ resource "aws_instance" "free_tier" {
     Name = "FreeTierInstance"
   }
 }
+*/
 
 # Optional: pass in your SSH key name via a variable
 # variable "ssh_key_name" {
