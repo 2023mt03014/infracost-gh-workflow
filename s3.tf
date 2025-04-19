@@ -49,6 +49,18 @@ resource "aws_instance" "free_tier" {
   }
 }
 
+resource "aws_instance" "free_tier_2" {
+  ami           = data.aws_ami.amazon_linux_2.id
+  instance_type = "t2.micro"          # Free‑tier eligible
+
+  # Optional: allow SSH (you’ll need to create this key pair first in AWS)
+  # key_name = var.ssh_key_name
+
+  tags = {
+    Name = "FreeTierInstance"
+  }
+}
+
 # Optional: pass in your SSH key name via a variable
 # variable "ssh_key_name" {
 #   description = "Name of an existing AWS key pair to attach for SSH access"
