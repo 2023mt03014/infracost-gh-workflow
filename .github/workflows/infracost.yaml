@@ -32,6 +32,12 @@ jobs:
                          --compare-to=baseline.json \
                          --out-file=infracost.json
 
+      - name: Comment PR with cost estimate
+        uses: infracost/actions/comment@v2.1.0
+        with:
+          report_path: infracost.json
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          update: true
 
       - name: Post Infracost comment
         run: |
