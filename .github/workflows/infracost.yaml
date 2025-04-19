@@ -61,13 +61,31 @@ jobs:
                                      --github-token=${{ github.token }} \
                                      --pull-request=${{ github.event.pull_request.number }} \
                                      --behavior=update
-        # … after you’ve run `terraform init` & `terraform plan -out=tfplan.binary`
-      - name: Infracost PR cost comparison
+      - name: Infracost PR cost comment
         uses: infracost/actions@v3.0.1
         with:
-          api_key: ${{ secrets.INFRACOST_API_KEY }}                        # your Infracost Cloud API key
-          path: tfplan.binary                                            # terraform plan output
-          comment: true                                                   # enable PR comments
-          behavior: update                                                # update the existing comment
-          base_branch: ${{ github.event.pull_request.base.ref }}          # compare against target branch  [oai_citation_attribution:0‡GitHub](https://github.com/infracost/actions?utm_source=chatgpt.com) [oai_citation_attribution:1‡GitHub](https://github.com/infracost/actions/blob/master/action.yml?utm_source=chatgpt.com)
-          terraform_plan_flags: "-no-color"                               # optional: strip ANSI colors
+          # Your Infracost Cloud API key
+          api_key:        ${{ secrets.INFRACOST_API_KEY }}
+          # Point at the plan file you generated
+          path:           tfplan.binary
+          # Enable GitHub PR comments
+          comment:        true
+          # On each run, update the same comment instead of creating new ones
+          behavior:       update
+          # Compare against the target branch so you get a diff
+          base_branch:    ${{ github.event.pull_request.base.ref }}
+          # (optional) strip ANSI color codes from the plan
+          terraform_plan_flags: "-no-color"
+      
+      # … after you’ve run `terraform init` & `terraform plan -out=tfplan.binary`
+      - name: Generate Infracost JSON
+        run: infracost breakdown --path=tfplan.binary --format=json --out-file=infracost.json
+
+      - name: Post Infracost comment
+        run: |
+          infracost comment github \
+            --path=infracost.json \
+            --repo="${{ github.repository }}" \
+            --pull-request="${{ github.event.pull_request.number }}" \
+            --github-token="${{ secrets.GITHUB_TOKEN }}" \
+            --behavior=update
